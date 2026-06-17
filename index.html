@@ -139,28 +139,70 @@
   }
   #thermal-receipt * { color: #000000 !important; font-family: 'Courier New', Courier, monospace !important; }
 
+  /* only-print-block: hidden on screen, visible when printing */
+  .only-print-block { display: none; }
+
   /* COMPREHENSIVE EXECUTIVE CORPORATE A4 PRINT ARCHITECTURE */
 @media print {
-  /* 1. Reset all elements and hide navigation/buttons */
-  body, html { background: #ffffff !important; color: #000000 !important; margin: 0; padding: 0; }
-  nav, .nav-tab, .btn, .no-print, input, select, .scanner-window, .search-wrap, .qty-stepper, .cart-item-total { display: none !important; }
+  /* 1. Hide absolutely everything by default */
+  body > * { display: none !important; }
 
-  /* 2. Isolate the target container */
-  .view-panel { display: none !important; }
-  .view-panel.print-active { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+  /* 2. Show ONLY the print pipe (thermal receipt) when it has content */
+  #print-hardware-pipe { 
+    display: block !important; 
+    position: fixed !important;
+    inset: 0 !important;
+    background: #ffffff !important;
+    z-index: 99999 !important;
+  }
 
-  /* 3. A4 Report Clean Layout */
+  /* 3. When printing the A4 report, hide pipe and show report panel */
+  body.printing-a4-report > #print-hardware-pipe { display: none !important; }
+  body.printing-a4-report > .container { display: block !important; background: #ffffff !important; margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
+  body.printing-a4-report .view-panel { display: none !important; }
+  body.printing-a4-report #view-reports { display: block !important; }
+
+  /* 4. Thermal receipt exact sizing */
+  #thermal-receipt {
+    width: 57mm !important;
+    margin: 0 auto !important;
+  }
+
+  /* 5. A4 Report clean layout */
   .corporate-a4-print-layout {
     display: block !important;
-    width: 210mm !important;
+    width: 100% !important;
     padding: 15mm !important;
     font-family: Arial, sans-serif !important;
+    background: #ffffff !important;
+    color: #000000 !important;
   }
-  
-  /* 4. Ensure tables render properly without breaking */
+
+  /* 6. Fix stat cards for white paper */
+  .stat-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 12px !important; }
+  .stat-card { background: #f5f5f5 !important; border: 1px solid #cccccc !important; padding: 14px !important; border-radius: 6px !important; }
+  .stat-label { color: #555555 !important; font-size: 10px !important; }
+  .stat-value { color: #000000 !important; font-size: 18px !important; }
+
+  /* 7. Tables for A4 */
   .table-responsive { overflow: visible !important; }
-  table { width: 100% !important; page-break-inside: auto; }
+  table { width: 100% !important; page-break-inside: auto; border-collapse: collapse !important; }
+  th { background: #e8e8e8 !important; color: #333333 !important; border: 1px solid #cccccc !important; padding: 8px !important; font-size: 11px !important; }
+  td { border: 1px solid #dddddd !important; padding: 8px !important; color: #000000 !important; font-size: 12px !important; }
   tr { page-break-inside: avoid; page-break-after: auto; }
+
+  /* 8. Hide all UI chrome */
+  nav, .no-print, .btn, input, select, .search-wrap,
+  .scanner-window, .qty-stepper, .modal-overlay,
+  .toast, #gatt-status-stream-box { display: none !important; }
+
+  /* 9. Signature line — show only when printing A4 */
+  .only-print-block { display: flex !important; }
+
+  /* 10. Card backgrounds for A4 */
+  .card { background: #ffffff !important; border: 1px solid #cccccc !important; color: #000000 !important; }
+  .card-title, h1, h2, h3 { color: #000000 !important; }
+  p, span, div, b { color: inherit; }
 }
 </style>
 </head>
@@ -401,9 +443,8 @@
   </div>
 </div>
 
-<div id="print-hardware-pipe" style="display:none;"></div>
+<div id="print-hardware-pipe" class="no-print"></div>
 <div class="toast" id="ui-toast-notification"></div>
-<button onclick="handlePrintAction()">Print Receipt</button>
 <script>
 // Memory Persistence Model Arrays
 var products = JSON.parse(localStorage.getItem('tfp_core_products_v3') || '[]');
@@ -998,14 +1039,17 @@ function executePhysicalThermalSpool() {
   });
   localStorage.setItem('tfp_core_products_v3', JSON.stringify(products));
 
-  // Forward code contents directly into local spooler frame 
+  // Copy receipt HTML into the print pipe
   const executionNode = document.getElementById('print-hardware-pipe');
   executionNode.innerHTML = document.getElementById('thermal-receipt').outerHTML;
-  
-  // Assure non-conflicting views are cleared from execution layers
-  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('print-active'));
-  
+
+  // Make sure we are NOT in A4 report mode
+  document.body.classList.remove('printing-a4-report');
+
   window.print();
+
+  // Clear the pipe after printing so it doesn't show on screen
+  setTimeout(() => { executionNode.innerHTML = ''; }, 500);
   
   checkoutCart = [];
   document.getElementById('bill-discount').value = '0';
@@ -1148,6 +1192,20 @@ async function handlePrintAction() {
         console.error("Print failed:", err);
         alert("Print error: " + err.message);
     }
+}
+
+// ==========================================
+// A4 CORPORATE REPORT PRINT FUNCTION
+// ==========================================
+function printCorporateA4Report() {
+  renderCorporateSummaryReport();
+  // Clear print pipe so only the report shows
+  document.getElementById('print-hardware-pipe').innerHTML = '';
+  // Signal body that we are printing A4 (not thermal)
+  document.body.classList.add('printing-a4-report');
+  window.print();
+  // Remove class after dialog closes
+  setTimeout(() => { document.body.classList.remove('printing-a4-report'); }, 1000);
 }
 
 // Bootstrap Initialization Lifecycle Hooks
