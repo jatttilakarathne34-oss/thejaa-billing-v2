@@ -133,17 +133,19 @@
     width: 57mm;
     min-height: 50mm;
     padding: 3mm 2mm;
-    font-family: 'Courier New', Courier, monospace !important;
-    font-size: 9pt !important;
-    line-height: 1.3 !important;
+    font-family: "Arial Narrow","Liberation Sans Narrow",Arial,sans-serif !important;
+    font-size: 11pt !important;
+    line-height: 1.25 !important;
   }
-  #thermal-receipt * { color: #000000 !important; font-family: 'Courier New', Courier, monospace !important; }
+  #thermal-receipt * { color: #000000 !important; font-family: "Arial Narrow","Liberation Sans Narrow",Arial,sans-serif !important; }
 
   /* only-print-block: hidden on screen, visible when printing */
   .only-print-block { display: none; }
 
   /* COMPREHENSIVE EXECUTIVE CORPORATE A4 PRINT ARCHITECTURE */
 @media print {
+  @page { margin: 0; size: 57mm auto; }
+
   /* 1. Hide absolutely everything by default */
   body > * { display: none !important; }
 
@@ -156,7 +158,8 @@
     z-index: 99999 !important;
   }
 
-  /* 3. When printing the A4 report, hide pipe and show report panel */
+  /* 3. When printing the A4 report, override page size and show report */
+  body.printing-a4-report { }
   body.printing-a4-report > #print-hardware-pipe { display: none !important; }
   body.printing-a4-report > .container { display: block !important; background: #ffffff !important; margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
   body.printing-a4-report .view-panel { display: none !important; }
@@ -166,6 +169,8 @@
   #thermal-receipt {
     width: 57mm !important;
     margin: 0 auto !important;
+    font-family: "Arial Narrow","Liberation Sans Narrow",Arial,sans-serif !important;
+    font-size: 11pt !important;
   }
 
   /* 5. A4 Report clean layout */
@@ -227,6 +232,10 @@
         <div class="card">
           <div class="card-title">Customer Identification</div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field"><label>Sales Rep</label><input type="text" id="bill-rep-name" placeholder="Rep name..."></div>
+            <div class="field"><label>Route</label><input type="text" id="bill-route-name" placeholder="Route name..."></div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div class="field"><label>Customer Name</label><input type="text" id="bill-cust-name" value="Walk-in Customer"></div>
             <div class="field"><label>Phone Connection</label><input type="tel" id="bill-cust-phone" placeholder="Optional"></div>
           </div>
@@ -254,7 +263,6 @@
           <div class="ledger-box">
             <div class="ledger-line"><span>Gross Subtotal</span><span id="sum-gross">Rs. 0.00</span></div>
             <div class="ledger-line"><span>Discount Amount</span><span id="sum-disc">Rs. 0.00</span></div>
-            <div class="ledger-line"><span>Tax Aggregation Matrix</span><span id="sum-tax">Rs. 0.00</span></div>
             <div class="ledger-line total"><span>Net Due Invoice</span><span id="sum-net">Rs. 0.00</span></div>
             <div class="ledger-line" style="margin-top:4px;"><span>Change Due</span><span id="sum-change" style="color:var(--accent); font-weight:600;">Rs. 0.00</span></div>
           </div>
@@ -387,13 +395,16 @@
           <h2 class="view-title" style="border:none; margin:0; padding:0;">Executive Performance Summary</h2>
           <p style="color:var(--muted); font-size:13px; margin-top:2px;">Clean corporate business intelligence document layout</p>
         </div>
-        <button class="btn btn-accent" onclick="printCorporateA4Report()">🖨 Print Executive Report (A4 Sheet)</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-danger" onclick="resetDailyReport()" title="Clears today's transactions for a fresh daily count">🔄 Reset Daily</button>
+          <button class="btn btn-accent" onclick="printCorporateA4Report()">🖨 Print Report (A4)</button>
+        </div>
       </div>
     </div>
     
     <div class="corporate-a4-print-layout" id="corporate-report-container">
       <div style="text-align:center; margin-bottom:28px; padding-bottom:14px; border-bottom:2px solid #000000;">
-        <h1 style="font-size:24px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase;">Thejaa Food Product</h1>
+        <h1 style="font-size:32px; font: weight 80px;; letter-spacing:0.5px; text-transform:uppercase;">Thejaa Food Product</h1>
         <p style="font-size:12px; margin-top:3px; text-transform:uppercase; letter-spacing:1px; color:#444;">Enterprise Ledger & Operations Review Sheet</p>
         <p style="font-size:11px; margin-top:4px;" id="corp-execution-timestamp"></p>
       </div>
@@ -434,7 +445,7 @@
     <div class="receipt-center">
       <div id="thermal-receipt"></div>
     </div>
-    <div id="gatt-status-stream-box" style="display:none; font-size:11px; color:var(--accent); text-align:center; margin-bottom:10px; font-family:'DM Mono',monospace;"></div>
+   <center> <div id="gatt-status-stream-box" style="display:none; font-size:32px; color:var(--accent); text-align:center; margin-bottom:10px; font-family:'DM Mono',monospace;"></div></center>
     <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end;">
       <button class="btn btn-dark btn-sm" onclick="closeReceiptPreview()">Close</button>
       <button class="btn btn-accent btn-sm" onclick="executePhysicalThermalSpool()">Commit & Print Invoice</button>
@@ -635,11 +646,11 @@ function runFinancialSummationEngine() {
 
 function calculateTotalSummary() {
   const meta = runFinancialSummationEngine();
+  const net = meta.gross - meta.discAmt;
   document.getElementById('sum-gross').textContent = 'Rs. ' + meta.gross.toFixed(2);
   document.getElementById('sum-disc').textContent = 'Rs. ' + meta.discAmt.toFixed(2);
-  document.getElementById('sum-tax').textContent = 'Rs. ' + meta.totalTax.toFixed(2);
-  document.getElementById('sum-net').textContent = 'Rs. ' + meta.net.toFixed(2);
-  document.getElementById('sum-change').textContent = 'Rs. ' + (meta.balance > 0 ? meta.balance : 0).toFixed(2);
+  document.getElementById('sum-net').textContent = 'Rs. ' + net.toFixed(2);
+  document.getElementById('sum-change').textContent = 'Rs. ' + (meta.cash > net ? (meta.cash - net).toFixed(2) : '0.00');
 }
 
 // ==========================================
@@ -916,76 +927,82 @@ function renderCorporateSummaryReport() {
 // 57MM RECEIPTS TERMINAL SYSTEM CONFIGURATION
 // ==========================================
 function buildStructured57mmReceiptHTML(data) {
-  const DIVIDER_LINE_STRING = '--------------------------------';
+  const DASH = '<div style="border-top:1.5px dashed #000; margin:3mm 0;"></div>';
+  const F = 'font-family:Arial,sans-serif; color:#000; line-height:1.3;';
   let s = '';
-  s += `<div style="text-align:center; font-weight:bold; font-size:11pt; letter-spacing:0.3px;">THEJAA FOOD PRODUCT</div>`;
-  s += `<div style="text-align:center; font-size:8.5pt; margin-top:0.5mm;">Thabuththegama.</div>`;
-  s += `<div style="margin-top:2.5mm; font-size:8.5pt;">Bill No: ${data.billNo}</div>`;
-  s += `<div style="font-size:8.5pt;">Bill Date: ${data.dateStr} ${data.timeStr}</div>`;
-  s += `<div style="font-size:8.5pt; margin-bottom:1mm;">C/S: ${data.customer.toUpperCase()}</div>`;
-  
-  s += `<div style="font-size:8pt; font-weight:bold; display:flex; margin-top:2mm;">`
-    + `<span style="width:40%">Product</span>`
-    + `<span style="width:18%; text-align:right;">B.Rate</span>`
-    + `<span style="width:14%; text-align:right;">Qty</span>`
-    + `<span style="width:13%; text-align:right;">GST%</span>`
-    + `<span style="width:15%; text-align:right;">Amount</span>`
-    + `</div>`;
-  s += `<div style="letter-spacing:-1px; margin:1mm 0; overflow:hidden; font-size:8pt;">${DIVIDER_LINE_STRING}</div>`;
-  
+
+  // ── COMPANY NAME — Arial (not narrow) so bold is truly heavy ──
+  s += `<div style="${F} font-weight:bold; text-align:center; font-size:20pt; line-height:1.15; margin-bottom:1.5mm;">THEJAA FOOD PRODUCT</div>`;
+  s += `<div style="${F} text-align:center; font-size:11pt; margin-bottom:0.5mm;">No174 Kalundegama</div>`;
+  s += `<div style="${F} text-align:center; font-size:11pt; margin-bottom:2mm;">Thabuththegama</div>`;
+  s += DASH;
+
+  // ── SALES INVOICE ──
+  s += `<div style="${F} font-weight:bold; text-align:center; font-size:13pt; margin-bottom:2mm;">SALES INVOICE</div>`;
+
+  // ── Meta lines ──
+  const meta = (label, val) =>
+    `<div style="${F} font-size:11pt; margin-bottom:1mm; display:flex;">
+      <span style="min-width:22mm;">${label}</span><span>: ${val}</span>
+    </div>`;
+  s += meta('INV REF No', data.billNo);
+  s += `<div style="${F} font-size:11pt; margin-bottom:1mm;">${data.dateStr} ${data.timeStr}</div>`;
+  s += meta('Rep', data.rep || 'Thejaa');
+  s += meta('Route', data.route || '-');
+  s += DASH;
+
+  s += meta('Customer', data.customer.toUpperCase());
+  if(data.phone) s += meta('Phone', data.phone);
+  s += DASH;
+
+  // ── Column header — with gaps using padding ──
+  s += `<div style="${F} font-size:11pt; font-weight:bold; display:flex; margin-bottom:1.5mm;">
+    <span style="flex:1; padding-right:4mm;">Item</span>
+    <span style="width:26%; text-align:right; padding-right:3mm;">Price</span>
+    <span style="width:13%; text-align:center; padding-right:3mm;">QTY</span>
+    <span style="width:22%; text-align:right;">Amount</span>
+  </div>`;
+  s += `<div style="border-top:1.5px dashed #000; margin-bottom:1.5mm;"></div>`;
+
+  // ── Items ──
   data.items.forEach(i => {
-    const directionalSign = i.isReturn ? -1 : 1;
-    const computedAmt = i.price * i.qty * directionalSign;
-    const prefixString = i.isReturn ? '[RET] ' : '';
-    s += `<div style="font-size:8pt; margin-bottom:1mm; line-height:1.2;">`
-      + `<div style="width:100%">${prefixString}${i.name}</div>`
-      + `<div style="display:flex; justify-content:flex-end; width:100%;">`
-      + `<span style="width:40%"></span>`
-      + `<span style="width:18%; text-align:right;">${i.price.toFixed(2)}</span>`
-      + `<span style="width:14%; text-align:right;">${i.qty}.00</span>`
-      + `<span style="width:13%; text-align:right;">${i.gst}.0</span>`
-      + `<span style="width:15%; text-align:right;">${computedAmt.toFixed(2)}</span>`
-      + `</div></div>`;
+    const sign = i.isReturn ? -1 : 1;
+    const amt  = (i.price * i.qty * sign).toFixed(2);
+    const prefix = i.isReturn ? '[RET] ' : '';
+    s += `<div style="${F} font-size:11pt; font-weight:bold; margin-bottom:0.5mm;">${prefix}${i.name}</div>`;
+    s += `<div style="${F} font-size:11pt; display:flex; margin-bottom:2mm; padding-left:3mm;">
+      <span style="flex:1; padding-right:4mm;">${i.price.toFixed(2)} x ${i.qty}</span>
+      <span style="width:22%; text-align:right; font-weight:bold;">${amt}</span>
+    </div>`;
   });
-  
-  s += `<div style="letter-spacing:-1px; margin:1mm 0; overflow:hidden; font-size:8pt;">${DIVIDER_LINE_STRING}</div>`;
-  
-  s += `<div style="font-size:7.5pt; font-weight:bold; display:flex;">`
-    + `<span style="width:25%">Tax%</span>`
-    + `<span style="width:25%; text-align:right;">CGST</span>`
-    + `<span style="width:25%; text-align:right;">SGST</span>`
-    + `<span style="width:25%; text-align:right;">Total</span>`
-    + `</div>`;
-  s += `<div style="letter-spacing:-1px; margin:0.5mm 0; overflow:hidden; font-size:7.5pt;">${DIVIDER_LINE_STRING}</div>`;
-  
-  const taxKeys = Object.keys(data.taxGroups);
-  if(taxKeys.length === 0) {
-    s += `<div style="font-size:7.5pt; text-align:center;">Tax Exempt Matrix Breakdown</div>`;
-  } else {
-    taxKeys.forEach(k => {
-      const g = data.taxGroups[k];
-      s += `<div style="font-size:7.5pt; display:flex;">`
-        + `<span style="width:25%">${k}%</span>`
-        + `<span style="width:25%; text-align:right;">${g.cgst.toFixed(2)}</span>`
-        + `<span style="width:25%; text-align:right;">${g.sgst.toFixed(2)}</span>`
-        + `<span style="width:25%; text-align:right;">${g.total.toFixed(2)}</span>`
-        + `</div>`;
-    });
-  }
-  s += `<div style="letter-spacing:-1px; margin:1mm 0; overflow:hidden; font-size:8pt;">${DIVIDER_LINE_STRING}</div>`;
-  
-  s += `<div style="font-size:8.5pt; display:flex; justify-content:space-between; margin-bottom:0.5mm;"><span>Gross Amt</span><span>${data.gross.toFixed(2)}</span></div>`;
-  s += `<div style="font-size:8.5pt; display:flex; justify-content:space-between; margin-bottom:0.5mm;"><span>Discount</span><span>Rs. ${data.discAmt.toFixed(2)}</span></div>`;
-  s += `<div style="font-size:8.5pt; display:flex; justify-content:space-between; margin-bottom:0.5mm;"><span>Tax Accum.</span><span>Rs. ${data.totalTax.toFixed(2)}</span></div>`;
-  s += `<div style="font-size:9.5pt; font-weight:bold; display:flex; justify-content:space-between; margin-bottom:1mm;"><span>Net Settlement</span><span>Rs. ${data.net.toFixed(2)}</span></div>`;
-  s += `<div style="font-size:8.5pt; display:flex; justify-content:space-between; margin-bottom:1mm;"><span>Cash Received</span><span>${data.cash.toFixed(2)}</span></div>`;
-  s += `<div style="font-size:8.5pt; display:flex; justify-content:space-between; margin-bottom:1mm;"><span>Balance Overage</span><span>${data.balance.toFixed(2)}</span></div>`;
-  
-  s += `<div style="border-top:1px dashed #000; border-bottom:1px dashed #000; padding:1.5mm 0; text-align:center; font-weight:bold; font-size:9pt; margin:2mm 0;">`
-    + `Total Outstanding is ${data.net.toFixed(2)}`
-    + `</div>`;
-    
-  s += `<div style="text-align:center; font-size:9.5pt; font-weight:bold; margin-top:2mm;">Thank You!</div>`;
+
+  s += DASH;
+
+  // ── Totals ──
+  const gross = data.gross.toFixed(2);
+  const disc  = data.discAmt.toFixed(2);
+  const net   = (data.gross - data.discAmt).toFixed(2);
+  const paid  = (data.cash > 0 ? data.cash : parseFloat(net)).toFixed(2);
+
+  const rowNormal = (label, val) =>
+    `<div style="${F} font-size:11pt; font-weight:normal; display:flex; justify-content:space-between; margin-bottom:1mm;">
+      <span>${label}</span><span>${val}</span>
+    </div>`;
+  const rowBig = (label, val) =>
+    `<div style="${F} font-size:16pt; font-weight:bold; display:flex; justify-content:space-between; margin-bottom:1.5mm;">
+      <span>${label}</span><span>${val}</span>
+    </div>`;
+
+  s += rowNormal('Gross Amount :', gross);
+  s += rowNormal('Discount :', disc);
+  s += DASH;
+  s += rowBig('Net Amount :', net);
+  s += rowNormal('Outstanding :', '0.00');
+  s += DASH;
+  s += rowBig('Net Payable :', net);
+  s += rowBig('Paid Amount :', paid);
+  s += DASH;
+  s += `<div style="${F} text-align:center; font-size:10pt; color:#555; margin-top:2mm;">powered by BillEase</div>`;
   return s;
 }
 
@@ -1010,6 +1027,8 @@ function openReceiptPreview() {
     gross: computationValues.gross, discAmt: computationValues.discAmt, totalTax: computationValues.totalTax, net: computationValues.net, cash: computationValues.cash, balance: computationValues.balance >= 0 ? computationValues.balance : 0,
     customer: document.getElementById('bill-cust-name').value || 'Walk-in Customer',
     phone: document.getElementById('bill-cust-phone').value || '',
+    rep: document.getElementById('bill-rep-name').value || 'Thejaa',
+    route: document.getElementById('bill-route-name').value || '',
     dateStr: dateStr, timeStr: timeStr,
     items: JSON.parse(JSON.stringify(checkoutCart)), taxGroups: computationValues.groups
   };
@@ -1024,39 +1043,49 @@ function closeReceiptPreview() {
 
 function executePhysicalThermalSpool() {
   if(!currentActiveTransactionObject) return;
-  
-  // Update system storage layers
+
+  // Save transaction
   transactions.push(currentActiveTransactionObject);
   localStorage.setItem('tfp_core_tx_v3', JSON.stringify(transactions));
-  
-  // Deduct quantities from active ledger layers
+
+  // Deduct stock
   currentActiveTransactionObject.items.forEach(i => {
-    const originalItemMatch = products.find(p => p.id === i.id);
-    if(originalItemMatch) {
-      const adjustmentDirectionFactor = i.isReturn ? -1 : 1;
-      originalItemMatch.currentStock = (originalItemMatch.currentStock || 0) - (i.qty * adjustmentDirectionFactor);
-    }
+    const p = products.find(p => p.id === i.id);
+    if(p) { const d = i.isReturn ? -1 : 1; p.currentStock = (p.currentStock || 0) - (i.qty * d); }
   });
   localStorage.setItem('tfp_core_products_v3', JSON.stringify(products));
 
-  // Copy receipt HTML into the print pipe
-  const executionNode = document.getElementById('print-hardware-pipe');
-  executionNode.innerHTML = document.getElementById('thermal-receipt').outerHTML;
+  // Build a standalone 57mm print page and open in new tab
+  const receiptHTML = document.getElementById('thermal-receipt').innerHTML;
+  const printPage = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=57mm, initial-scale=1.0">
+<title>Invoice #${currentActiveTransactionObject.billNo}</title>
+<style>
+  @page { margin: 0; size: 57mm auto; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 57mm; background: #fff; }
+  body { padding: 3mm 2mm; font-family: Arial, sans-serif; }
+  @media screen { body { display:flex; justify-content:center; } #w { width:57mm; } }
+</style>
+</head>
+<body><div id="w">${receiptHTML}</div>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`;
 
-  // Make sure we are NOT in A4 report mode
-  document.body.classList.remove('printing-a4-report');
+  const blob = new Blob([printPage], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
 
-  window.print();
-
-  // Clear the pipe after printing so it doesn't show on screen
-  setTimeout(() => { executionNode.innerHTML = ''; }, 500);
-  
   checkoutCart = [];
   document.getElementById('bill-discount').value = '0';
   document.getElementById('bill-cash').value = '';
   renderCheckoutQueue();
   closeReceiptPreview();
-  triggerToast("Transaction metrics safely archived.");
+  triggerToast("Invoice opened — tap Print!");
 }
 
 // ==========================================
@@ -1192,6 +1221,14 @@ async function handlePrintAction() {
         console.error("Print failed:", err);
         alert("Print error: " + err.message);
     }
+}
+
+function resetDailyReport() {
+  if(!confirm("Reset daily financial report? This will clear all today's transaction records. Products and stock levels will NOT be affected.")) return;
+  transactions = [];
+  localStorage.setItem('tfp_core_tx_v3', JSON.stringify(transactions));
+  renderCorporateSummaryReport();
+  triggerToast("Daily report reset. Fresh count started.");
 }
 
 // ==========================================
