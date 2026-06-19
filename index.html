@@ -931,10 +931,10 @@ function buildStructured57mmReceiptHTML(data) {
   const F = 'font-family:Arial,sans-serif; color:#000; line-height:1.3;';
   let s = '';
 
-  // ── COMPANY NAME — Arial (not narrow) so bold is truly heavy ──
-  s += `<div style="${F} font-weight:bold; text-align:center; font-size:20pt; line-height:1.15; margin-bottom:1.5mm;">THEJAA FOOD PRODUCT</div>`;
-  s += `<div style="${F} text-align:center; font-size:11pt; margin-bottom:0.5mm;">No174 Kalundegama</div>`;
-  s += `<div style="${F} text-align:center; font-size:11pt; margin-bottom:2mm;">Thabuththegama</div>`;
+  // ── COMPANY NAME — doubled size, very bold ──
+  s += `<div style="${F} font-weight:bold; text-align:center; font-size:24pt; line-height:1.1; margin-bottom:2mm;">THEJAA FOOD PRODUCT</div>`;
+  s += `<div style="${F} text-align:center; font-size:10pt; font-weight:bold; margin-bottom:1mm;">No174 Kalundegama</div>`;
+  s += `<div style="${F} text-align:center; font-size:16pt; font-weight:bold; margin-bottom:2mm;">Thabuththegama</div>`;
   s += DASH;
 
   // ── SALES INVOICE ──
@@ -950,7 +950,20 @@ function buildStructured57mmReceiptHTML(data) {
   s += meta('Rep', data.rep || 'Thejaa');
   s += meta('Route', data.route || '-');
   s += DASH;
+ // ── COMPANY NAME — doubled size, very bold ──
+  s += `<div style="${F} font-weight:bold; text-align:center; font-size:24pt; line-height:1.1; margin-bottom:2mm;">THEJAA FOOD PRODUCT</div>`;
+  s += `<div style="${F} text-align:center; font-size:10pt; font-weight:bold; margin-bottom:1mm;">No174 Kalundegama</div>`;
+  s += `<div style="${F} text-align:center; font-size:16pt; font-weight:bold; margin-bottom:2mm;">Thabuththegama</div>`;
+  s += DASH;
 
+  // ── SALES INVOICE ──
+  
+  s += `<div style="${F} font-weight:bold; text-align:center; font-size:13pt; margin-bottom:2mm;">SALES INVOICE</div>`;
+   s += meta('INV REF No', data.billNo);
+  s += `<div style="${F} font-size:11pt; margin-bottom:1mm;">${data.dateStr} ${data.timeStr}</div>`;
+  s += meta('Rep', data.rep || 'Thejaa');
+  s += meta('Route', data.route || '-');
+ 
   s += meta('Customer', data.customer.toUpperCase());
   if(data.phone) s += meta('Phone', data.phone);
   s += DASH;
@@ -1061,18 +1074,29 @@ function executePhysicalThermalSpool() {
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=57mm, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Invoice #${currentActiveTransactionObject.billNo}</title>
 <style>
   @page { margin: 0; size: 57mm auto; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { width: 57mm; background: #fff; }
-  body { padding: 3mm 2mm; font-family: Arial, sans-serif; }
-  @media screen { body { display:flex; justify-content:center; } #w { width:57mm; } }
+  html, body { background: #f0f0f0; }
+  /* Screen: center the 57mm receipt card */
+  @media screen {
+    body { display:flex; justify-content:center; align-items:flex-start; padding: 16px; min-height:100vh; }
+    #w { width:215px; background:#fff; padding:8px 6px; box-shadow:0 2px 12px rgba(0,0,0,0.18); border-radius:4px; }
+  }
+  /* Print: strip everything, force 57mm width, no margins */
+  @media print {
+    html, body { background:#fff !important; padding:0 !important; margin:0 !important; width:57mm !important; }
+    #w { width:57mm !important; padding:3mm 2mm !important; box-shadow:none !important; border-radius:0 !important; }
+  }
 </style>
 </head>
 <body><div id="w">${receiptHTML}</div>
-<script>window.onload=function(){window.print();}<\/script>
+<script>
+  // Auto-print after short delay so page renders first
+  setTimeout(function(){ window.print(); }, 400);
+<\/script>
 </body></html>`;
 
   const blob = new Blob([printPage], { type: 'text/html' });
